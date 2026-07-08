@@ -1,0 +1,35 @@
+    spring.application.name=hr-genai-backend
+
+    # MySQL
+    spring.datasource.url=jdbc:mysql://localhost:3306/hr_genai_db
+    spring.datasource.username=${DB_USERNAME:root}
+    spring.datasource.password=${DB_PASSWORD:root}
+
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.show-sql=true
+    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+    spring.jpa.open-in-view=false
+
+    # JWT
+    app.jwt.secret=${JWT_SECRET:hr_genai_super_secret_key_2024_make_this_long_enough_for_hs256}
+    app.jwt.expiration=86400000
+
+    # Groq AI Configuration
+    # Get your API key from https://console.groq.com/keys
+    spring.ai.openai.api-key=${GROQ_API_KEY}
+    spring.ai.openai.base-url=https://api.groq.com/openai
+    spring.ai.openai.chat.options.model=llama-3.3-70b-versatile
+
+    # Disable OpenAI embedding (Groq doesn't support embeddings)
+    spring.ai.openai.embedding.enabled=false
+
+    # Qdrant Vector Store
+    spring.ai.vectorstore.qdrant.host=localhost
+    spring.ai.vectorstore.qdrant.port=6334
+    spring.ai.vectorstore.qdrant.collection-name=hr_genai_vectors
+    spring.ai.vectorstore.qdrant.initialize-schema=true
+    spring.ai.vectorstore.qdrant.enabled=false  
+    spring.main.allow-bean-definition-overriding=true
+    # File Upload
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=100MB

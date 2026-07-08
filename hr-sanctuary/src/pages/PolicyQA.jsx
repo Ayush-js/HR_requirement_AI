@@ -1,45 +1,28 @@
 import { useState, useRef, useEffect } from 'react'
 import SectionTag from '../components/ui/SectionTag.jsx'
 import FadeIn from '../components/ui/FadeIn.jsx'
-
-const initialMessages = [
-  {
-    id: 1,
-    type: 'ai',
-    text: "Hello Sarah! I'm your dedicated HR policy assistant. I have access to the latest employee handbook and corporate guidelines. How can I help you today?",
-    time: 'Just now',
-    citations: null,
-  },
-  {
-    id: 2,
-    type: 'user',
-    text: "What is the current policy for remote work stipends? I'm looking to upgrade my home office chair.",
-    time: '2 mins ago',
-  },
-  {
-    id: 3,
-    type: 'ai',
-    text: null,
-    time: '1 min ago',
-    citations: ['Employee Handbook 2024, Sec. 4.2', 'IT Equipment Policy v2'],
-    parts: [
-      "According to the 2024 Policy Update, full-time employees are eligible for a one-time remote work equipment stipend of up to <strong>$500</strong>. This covers ergonomic chairs, desks, and monitors.",
-      "To claim this, you'll need to submit your receipts through the Offer Center portal under 'Equipment Reimbursement'.",
-    ],
-  },
-]
+import { askPolicyQuestion, uploadPolicy, getAllPolicies } from '../api/api'
 
 export default function PolicyQA() {
-  const [messages, setMessages] = useState(initialMessages)
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'ai',
+      text: "Hello! I'm your HR policy assistant. Upload a policy document or ask me anything about your company policies.",
+      time: 'Just now',
+    }
+  ])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const chatEndRef = useRef(null)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const text = inputValue.trim()
     if (!text) return
 
@@ -48,17 +31,50 @@ export default function PolicyQA() {
     setInputValue('')
     setIsTyping(true)
 
-    setTimeout(() => {
+    try {
+      const res = await askPolicyQuestion(text)
+      const { answer, sourceDocument } = res.data
       setIsTyping(false)
-      const aiMsg = {
+      setMessages((prev) => [...prev, {
         id: Date.now() + 1,
         type: 'ai',
-        text: "That's a great question, Sarah. I'm currently scanning the ZenBenefits 2024 module to provide the most accurate update. Please hold for a moment...",
+        text: answer,
         time: 'Just now',
-        citations: null,
-      }
-      setMessages((prev) => [...prev, aiMsg])
-    }, 2500)
+        source: sourceDocument,
+      }])
+    } catch (err) {
+      setIsTyping(false)
+      setMessages((prev) => [...prev, {
+        id: Date.now() + 1,
+        type: 'ai',
+        text: 'Sorry, I encountered an error. Please try again.',
+        time: 'Just now',
+      }])
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const res = await uploadPolicy(file)
+      setMessages((prev) => [...prev, {
+        id: Date.now(),
+        type: 'ai',
+        text: `Policy document "${res.data.fileName}" uploaded successfully! You can now ask questions about it.`,
+        time: 'Just now',
+      }])
+    } catch (err) {
+      setMessages((prev) => [...prev, {
+        id: Date.now(),
+        type: 'ai',
+        text: 'Failed to upload policy document. Please try again.',
+        time: 'Just now',
+      }])
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -73,7 +89,7 @@ export default function PolicyQA() {
             <SectionTag className="mb-4 justify-center">Policy Q&A</SectionTag>
             <h2 className="display-section text-primary mb-3">Everything You Need to Know</h2>
             <p className="text-on-surface-variant max-w-md mx-auto font-body">
-              Ask anything about Zenith Corporate policies, benefits, or procedures.
+              Ask anything about company policies, benefits, or procedures.
             </p>
           </header>
         </FadeIn>
@@ -91,27 +107,11 @@ export default function PolicyQA() {
                   </span>
                 </div>
                 <div className="glass-card p-6 md:p-8 rounded-2xl rounded-tl-sm max-w-[85%]">
-                  {msg.parts ? (
-                    <div className="space-y-4">
-                      {msg.parts.map((part, i) => (
-                        <p key={i} className="text-on-surface leading-relaxed font-body" dangerouslySetInnerHTML={{ __html: part }} />
-                      ))}
-                      {msg.citations && (
-                        <div className="pt-4 mt-2 border-t border-outline-variant/20">
-                          <div className="flex items-center gap-2 text-secondary font-semibold text-[10px] uppercase tracking-widest mb-3 font-body">
-                            <span className="material-symbols-outlined text-sm">menu_book</span>
-                            Citations
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {msg.citations.map((c, i) => (
-                              <span key={i} className="status-badge cursor-pointer hover:bg-secondary/15 transition-colors">{c}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                  <p className="text-on-surface leading-relaxed font-body">{msg.text}</p>
+                  {msg.source && (
+                    <div className="pt-4 mt-2 border-t border-outline-variant/20">
+                      <span className="status-badge">{msg.source}</span>
                     </div>
-                  ) : (
-                    <p className="text-on-surface leading-relaxed font-body">{msg.text}</p>
                   )}
                 </div>
               </div>
@@ -144,27 +144,39 @@ export default function PolicyQA() {
               </div>
             </div>
           )}
-
           <div ref={chatEndRef} />
         </div>
       </div>
 
       <div className="p-6 md:p-8 bg-gradient-to-t from-surface via-surface to-transparent z-30">
         <div className="max-w-4xl mx-auto relative group">
-          <div className="absolute inset-0 bg-secondary/5 blur-2xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
           <div className="relative glass-pill rounded-full flex items-center px-6 py-2 border border-outline-variant/25 shadow-[0_8px_40px_rgba(28,27,25,0.08)]">
             <span className="material-symbols-outlined text-secondary mr-3">search</span>
             <input
               className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-on-surface py-4 text-sm placeholder:text-on-surface-variant/50 font-body"
-              placeholder="Ask about maternity leave, PTO, or health benefits..."
+              placeholder="Ask about leave policy, reimbursements, or benefits..."
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
             />
             <div className="flex items-center gap-2">
-              <button className="p-2 text-on-surface-variant hover:text-secondary transition-colors">
-                <span className="material-symbols-outlined">attach_file</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="p-2 text-on-surface-variant hover:text-secondary transition-colors"
+                title="Upload policy document"
+              >
+                <span className="material-symbols-outlined">
+                  {uploading ? 'hourglass_empty' : 'attach_file'}
+                </span>
               </button>
               <button
                 onClick={sendMessage}

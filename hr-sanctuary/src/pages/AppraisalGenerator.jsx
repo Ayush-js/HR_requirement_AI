@@ -40,7 +40,7 @@ export default function AppraisalGenerator() {
               <div className="relative group mb-6">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
                 <input
-                  className="aveon-input pl-12"
+                  className="aveon-input !pl-12"
                   placeholder="Search team member..."
                   type="text"
                 />

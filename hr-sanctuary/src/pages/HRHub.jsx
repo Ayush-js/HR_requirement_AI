@@ -86,7 +86,7 @@ export default function HRHub() {
               workflows that <em className="italic text-secondary">tell a story</em>
             </h1>
             <p className="text-base md:text-lg text-on-surface-variant max-w-xl leading-relaxed mb-8 font-body">
-              Good morning, Sarah. Today is a great day to nurture your team's growth. There are{' '}
+              Good morning. Today is a great day to nurture your team's growth. There are{' '}
               <span className="font-semibold text-primary">3 candidates</span> awaiting screening.
             </p>
             <div className="flex flex-wrap gap-4">
