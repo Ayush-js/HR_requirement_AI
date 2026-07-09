@@ -11,6 +11,8 @@ import com.hrgenai.hr_genai_backend.repository.AppraisalRepository;
 import com.hrgenai.hr_genai_backend.repository.UserRepository;
 import com.hrgenai.hr_genai_backend.service.AppraisalService;
 import com.hrgenai.hr_genai_backend.service.LLMService;
+
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class AppraisalServiceImpl implements AppraisalService {
 
     private final AppraisalRepository appraisalRepository;

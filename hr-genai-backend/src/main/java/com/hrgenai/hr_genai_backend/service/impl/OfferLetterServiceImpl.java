@@ -11,6 +11,8 @@ import com.hrgenai.hr_genai_backend.repository.OfferLetterRepository;
 import com.hrgenai.hr_genai_backend.repository.UserRepository;
 import com.hrgenai.hr_genai_backend.service.LLMService;
 import com.hrgenai.hr_genai_backend.service.OfferLetterService;
+
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class OfferLetterServiceImpl implements OfferLetterService {
 
     private final OfferLetterRepository offerLetterRepository;

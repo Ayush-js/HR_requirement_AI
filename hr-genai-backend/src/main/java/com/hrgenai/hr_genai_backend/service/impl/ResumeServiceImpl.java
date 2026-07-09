@@ -10,6 +10,8 @@ import com.hrgenai.hr_genai_backend.repository.*;
 import com.hrgenai.hr_genai_backend.service.DocumentParserService;
 import com.hrgenai.hr_genai_backend.service.LLMService;
 import com.hrgenai.hr_genai_backend.service.ResumeService;
+
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class ResumeServiceImpl implements ResumeService {
 
     private final ResumeRepository resumeRepository;

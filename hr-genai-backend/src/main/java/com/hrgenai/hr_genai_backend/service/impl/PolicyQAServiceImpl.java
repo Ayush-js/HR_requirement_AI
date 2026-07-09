@@ -23,10 +23,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class PolicyQAServiceImpl implements PolicyQAService {
 
     private final PolicyDocumentRepository policyDocumentRepository;
