@@ -6,6 +6,10 @@ import com.hrgenai.hr_genai_backend.dto.response.AuthResponse;
 import com.hrgenai.hr_genai_backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,4 +29,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @GetMapping("/users")
+public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+    return ResponseEntity.ok(authService.getAllUsers());
+}
+
+@GetMapping("/stats")
+public ResponseEntity<Map<String, Object>> getStats() {
+    return ResponseEntity.ok(authService.getStats());
+}
 }
