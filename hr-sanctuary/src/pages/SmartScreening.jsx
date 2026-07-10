@@ -218,7 +218,7 @@ export default function SmartScreening() {
                         onClick={handleSelectOthers}
                         className={`w-full text-left px-4 py-3 text-sm font-body hover:bg-surface-container-low transition-colors border-t border-outline-variant/15 ${isOthers ? 'bg-secondary/10 text-secondary' : 'text-on-surface'}`}
                       >
-                        ✏️ Others (Custom Role)
+                         Others (Custom Role)
                       </button>
                     </div>
                   </div>

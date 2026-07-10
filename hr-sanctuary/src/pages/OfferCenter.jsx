@@ -1,25 +1,72 @@
 import { useState, useEffect } from 'react'
 import FadeIn from '../components/ui/FadeIn.jsx'
 import SectionTag from '../components/ui/SectionTag.jsx'
-import AveonButton from '../components/ui/AveonButton.jsx'
+import { generateOfferLetter, finalizeOfferLetter, getAllOffers } from '../api/api'
 
 export default function OfferCenter() {
-  const [candidateName, setCandidateName] = useState('')
+  const [candidateId, setCandidateId] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
-  const [previewDate, setPreviewDate] = useState('Current Date')
-  const [previewOpacity, setPreviewOpacity] = useState(1)
+  const [companyName, setCompanyName] = useState('HR Sanctuary')
+  const [generating, setGenerating] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+  const [finalizing, setFinalizing] = useState(false)
+  const [finalized, setFinalized] = useState(false)
+  const [previewDate, setPreviewDate] = useState('')
 
   useEffect(() => {
     const now = new Date()
-    const options = { year: 'numeric', month: 'long', day: 'numeric' }
-    setPreviewDate(now.toLocaleDateString('en-US', options))
+    setPreviewDate(now.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    }))
   }, [])
 
-  const handleGenerate = () => {
-    setPreviewOpacity(0.5)
-    setTimeout(() => setPreviewOpacity(1), 300)
+  const handleGenerate = async () => {
+    if (!candidateId) { setError('Please enter a candidate ID'); return }
+    if (!role.trim()) { setError('Please enter a job role'); return }
+    if (!salary.trim()) { setError('Please enter salary'); return }
+    if (!joiningDate) { setError('Please select a joining date'); return }
+
+    setGenerating(true)
+    setError('')
+    setResult(null)
+    setFinalized(false)
+
+    try {
+      const res = await generateOfferLetter({
+        candidateId: Number(candidateId),
+        jobRole: role,
+        salary: Number(salary.replace(/[^0-9.]/g, '')),
+        joiningDate,
+        companyName,
+      })
+      setResult(res.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to generate offer letter.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleFinalize = async () => {
+    if (!result) return
+    setFinalizing(true)
+    try {
+      await finalizeOfferLetter(result.id)
+      setFinalized(true)
+    } catch (err) {
+      setError('Failed to finalize offer letter.')
+    } finally {
+      setFinalizing(false)
+    }
+  }
+
+  const handleCopy = () => {
+    if (result?.generatedContent) {
+      navigator.clipboard.writeText(result.generatedContent)
+    }
   }
 
   return (
@@ -29,10 +76,16 @@ export default function OfferCenter() {
           <SectionTag className="mb-4">Offer Center</SectionTag>
           <h2 className="display-section text-primary mb-4">Create New Offer</h2>
           <p className="text-on-surface-variant max-w-2xl leading-relaxed font-body">
-            Craft bespoke offer letters that reflect our sanctuary values. Enter candidate details to generate a preview of the digital onboarding experience.
+            Generate professional offer letters instantly. Enter candidate details and let AI craft the perfect offer.
           </p>
         </section>
       </FadeIn>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-body">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5 flex flex-col gap-6">
@@ -44,64 +97,90 @@ export default function OfferCenter() {
               </div>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body" htmlFor="candidate_name">Candidate Name</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
+                    Candidate ID
+                  </label>
                   <input
                     className="aveon-input"
-                    id="candidate_name"
-                    placeholder="e.g., Alex Rivers"
-                    type="text"
-                    value={candidateName}
-                    onChange={(e) => setCandidateName(e.target.value)}
+                    placeholder="e.g. 3"
+                    type="number"
+                    value={candidateId}
+                    onChange={(e) => setCandidateId(e.target.value)}
                   />
+                  <p className="text-xs text-on-surface-variant mt-1 font-body">
+                    Enter the candidate ID from Smart Screening
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body" htmlFor="role">Role</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
+                    Job Role
+                  </label>
                   <input
                     className="aveon-input"
-                    id="role"
-                    placeholder="e.g., Senior Experience Designer"
+                    placeholder="e.g. Java Backend Developer"
                     type="text"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
+                    Company Name
+                  </label>
+                  <input
+                    className="aveon-input"
+                    placeholder="e.g. HR Sanctuary"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body" htmlFor="salary">Salary (Annual)</label>
+                    <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
+                      Salary (Annual)
+                    </label>
                     <input
                       className="aveon-input"
-                      id="salary"
-                      placeholder="$120,000"
+                      placeholder="800000"
                       type="text"
                       value={salary}
                       onChange={(e) => setSalary(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body" htmlFor="joining_date">Joining Date</label>
+                    <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
+                      Joining Date
+                    </label>
                     <input
                       className="aveon-input"
-                      id="joining_date"
                       type="date"
                       value={joiningDate}
                       onChange={(e) => setJoiningDate(e.target.value)}
                     />
                   </div>
                 </div>
-                <AveonButton className="w-full !justify-center mt-2" onClick={handleGenerate}>
-                  Generate Draft
-                </AveonButton>
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="aveon-btn aveon-btn-primary w-full !justify-center disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {generating ? 'hourglass_empty' : 'auto_awesome'}
+                  </span>
+                  <span>{generating ? 'Generating...' : 'Generate Draft'}</span>
+                </button>
               </div>
             </div>
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <div className="bg-primary text-on-primary rounded-2xl p-6 flex items-start gap-4 animate-breathe relative overflow-hidden">
+            <div className="bg-primary text-on-primary rounded-2xl p-6 flex items-start gap-4 relative overflow-hidden">
               <div className="w-11 h-11 rounded-full border border-on-primary/20 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined">info</span>
               </div>
               <p className="text-sm leading-relaxed font-body relative z-10">
-                Standard offers include health insurance, wellness stipend, and 25 days of vacation as part of our sanctuary package.
+                The AI will generate a complete professional offer letter based on your inputs. You can copy or finalize it after review.
               </p>
               <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-secondary/20 rounded-full blur-2xl pointer-events-none" />
             </div>
@@ -115,76 +194,73 @@ export default function OfferCenter() {
                 <span className="w-2.5 h-2.5 rounded-full bg-outline-variant/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-secondary/40" />
                 <span className="w-2.5 h-2.5 rounded-full bg-outline-variant/40" />
-                <span className="ml-4 text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest font-body">Preview Mode</span>
+                <span className="ml-4 text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest font-body">
+                  Preview Mode
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 rounded-lg hover:bg-surface-container-low transition-colors text-secondary" title="Copy Email">
+                <button
+                  onClick={handleCopy}
+                  disabled={!result}
+                  className="p-2 rounded-lg hover:bg-surface-container-low transition-colors text-secondary disabled:opacity-30"
+                  title="Copy content"
+                >
                   <span className="material-symbols-outlined">content_copy</span>
-                </button>
-                <button className="p-2 rounded-lg hover:bg-surface-container-low transition-colors text-secondary" title="Download PDF">
-                  <span className="material-symbols-outlined">picture_as_pdf</span>
                 </button>
               </div>
             </div>
 
-            <div className="flex-grow bg-surface-container-low mx-4 md:mx-6 mb-4 rounded-xl overflow-hidden flex flex-col">
-              <div
-                className="flex-grow overflow-y-auto p-8 md:p-12 offer-preview-canvas scroll-smooth transition-opacity duration-300"
-                style={{ opacity: previewOpacity }}
-              >
-                <div className="max-w-2xl mx-auto bg-white p-10 md:p-14 shadow-[0_10px_40px_rgba(28,27,25,0.04)] min-h-full border border-outline-variant/10">
-                  <div className="mb-12 flex justify-between items-start">
-                    <div>
-                      <h4 className="font-headline text-2xl text-primary uppercase tracking-tight">HR Sanctuary</h4>
-                      <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1 font-body">Human Resources Division</p>
-                    </div>
-                    <div className="text-right text-xs text-on-surface-variant font-body">
-                      <p>{previewDate}</p>
-                    </div>
+            <div className="flex-grow bg-surface-container-low mx-4 md:mx-6 mb-4 mt-4 rounded-xl overflow-hidden flex flex-col">
+              <div className="flex-grow overflow-y-auto p-8 md:p-12">
+                {!result ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">description</span>
+                    <p className="text-on-surface-variant font-body text-sm">
+                      Fill in the details and click Generate Draft to create an offer letter
+                    </p>
                   </div>
-                  <div className="space-y-6 text-on-surface-variant text-sm leading-relaxed font-body">
-                    <p className="font-medium text-on-surface text-base">
-                      Dear <span className="text-secondary font-headline text-lg">{candidateName || '[Candidate Name]'}</span>,
-                    </p>
-                    <p>
-                      We are absolutely delighted to offer you the position of <span className="font-medium text-on-surface">{role || '[Role Name]'}</span> at HR Sanctuary. Following our recent conversations, we are confident that your unique skills and background will be a profound addition to our culture of tranquility and high-performance.
-                    </p>
-                    <p>
-                      As part of this role, your annual base salary will be <span className="font-medium text-on-surface">{salary || '[Salary Amount]'}</span>, payable in accordance with our standard payroll cycle. We are proposing a start date of <span className="font-medium text-on-surface">{joiningDate || '[Joining Date]'}</span>.
-                    </p>
-                    <div className="h-px bg-outline-variant/30 my-8" />
-                    <h5 className="text-secondary font-semibold uppercase tracking-widest text-[10px] mb-4">Core Benefits</h5>
-                    <ul className="space-y-3 list-none pl-0">
-                      {[
-                        { icon: 'spa', text: '$2,500 Annual Sanctuary Wellness Stipend' },
-                        { icon: 'event', text: '25 Days Paid Leave + Floating Sanctuary Days' },
-                        { icon: 'verified_user', text: 'Comprehensive Health & Mental Wellness Coverage' },
-                      ].map((b) => (
-                        <li key={b.text} className="flex gap-3">
-                          <span className="material-symbols-outlined text-secondary text-sm">{b.icon}</span>
-                          <span>{b.text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-8">We look forward to having you join our sanctuary. Please let us know if you have any questions regarding this offer.</p>
-                    <div className="mt-12 pt-8 border-t border-outline-variant/20">
-                      <p className="mb-1">Best regards,</p>
-                      <p className="font-headline text-xl text-primary">Sarah Jenkins</p>
-                      <p className="text-xs">HR Director, HR Sanctuary</p>
+                ) : (
+                  <div className="max-w-2xl mx-auto bg-white p-10 md:p-14 shadow-sm border border-outline-variant/10 rounded">
+                    <div className="mb-12 flex justify-between items-start">
+                      <div>
+                        <h4 className="font-headline text-2xl text-primary uppercase tracking-tight">
+                          {companyName}
+                        </h4>
+                        <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1 font-body">
+                          Human Resources Division
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-on-surface-variant font-body">
+                        <p>{previewDate}</p>
+                      </div>
                     </div>
+                    <div className="text-on-surface-variant text-sm leading-relaxed font-body whitespace-pre-wrap">
+                      {result.generatedContent}
+                    </div>
+                    {finalized && (
+                      <div className="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-2 text-secondary text-sm font-body">
+                        <span className="material-symbols-outlined text-sm">verified</span>
+                        This offer letter has been finalized
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="bg-surface-container px-6 md:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-outline-variant/15">
-                <span className="text-xs text-on-surface-variant font-medium font-body">Ready to send?</span>
+                <span className="text-xs text-on-surface-variant font-medium font-body">
+                  {result ? (finalized ? 'Finalized ✓' : 'Ready to finalize') : 'Awaiting generation...'}
+                </span>
                 <div className="flex gap-3">
-                  <button className="aveon-btn aveon-btn-outline !py-2 !px-5 !text-[0.65rem]">
-                    <span>Save Record</span>
-                  </button>
-                  <button className="aveon-btn aveon-btn-primary !py-2 !px-5 !text-[0.65rem]">
-                    <span>Send Offer</span>
-                  </button>
+                  {result && !finalized && (
+                    <button
+                      onClick={handleFinalize}
+                      disabled={finalizing}
+                      className="aveon-btn aveon-btn-primary !py-2 !px-5 !text-[0.65rem] disabled:opacity-60"
+                    >
+                      <span>{finalizing ? 'Finalizing...' : 'Finalize Offer'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
