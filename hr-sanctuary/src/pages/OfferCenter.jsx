@@ -9,36 +9,38 @@ export default function OfferCenter() {
   const [salary, setSalary] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
   const [companyName, setCompanyName] = useState('HR Sanctuary')
+  const [previewDate, setPreviewDate] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-  const [finalizing, setFinalizing] = useState(false)
   const [finalized, setFinalized] = useState(false)
-  const [previewDate, setPreviewDate] = useState('')
+  const [finalizing, setFinalizing] = useState(false)
+  const [error, setError] = useState('')
+  const [recentOffers, setRecentOffers] = useState([])
 
   useEffect(() => {
     const now = new Date()
     setPreviewDate(now.toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     }))
+    getAllOffers()
+      .then(res => setRecentOffers(res.data))
+      .catch(() => {})
   }, [])
 
   const handleGenerate = async () => {
-    if (!candidateId) { setError('Please enter a candidate ID'); return }
-    if (!role.trim()) { setError('Please enter a job role'); return }
-    if (!salary.trim()) { setError('Please enter salary'); return }
-    if (!joiningDate) { setError('Please select a joining date'); return }
-
+    if (!candidateId || !role || !salary || !joiningDate) {
+      setError('Please fill all required fields')
+      return
+    }
     setGenerating(true)
     setError('')
     setResult(null)
     setFinalized(false)
-
     try {
       const res = await generateOfferLetter({
         candidateId: Number(candidateId),
         jobRole: role,
-        salary: Number(salary.replace(/[^0-9.]/g, '')),
+        salary: Number(salary),
         joiningDate,
         companyName,
       })
@@ -56,6 +58,8 @@ export default function OfferCenter() {
     try {
       await finalizeOfferLetter(result.id)
       setFinalized(true)
+      setResult(prev => ({ ...prev, status: 'FINALIZED' }))
+      getAllOffers().then(res => setRecentOffers(res.data)).catch(() => {})
     } catch (err) {
       setError('Failed to finalize offer letter.')
     } finally {
@@ -63,7 +67,7 @@ export default function OfferCenter() {
     }
   }
 
-  const handleCopy = () => {
+  const copyToClipboard = () => {
     if (result?.generatedContent) {
       navigator.clipboard.writeText(result.generatedContent)
     }
@@ -98,7 +102,7 @@ export default function OfferCenter() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
-                    Candidate ID
+                    Candidate ID *
                   </label>
                   <input
                     className="aveon-input"
@@ -108,12 +112,12 @@ export default function OfferCenter() {
                     onChange={(e) => setCandidateId(e.target.value)}
                   />
                   <p className="text-xs text-on-surface-variant mt-1 font-body">
-                    Enter the candidate ID from Smart Screening
+                    Enter the candidate ID from the screening results
                   </p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
-                    Job Role
+                    Role *
                   </label>
                   <input
                     className="aveon-input"
@@ -138,19 +142,19 @@ export default function OfferCenter() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
-                      Salary (Annual)
+                      Salary (Annual) *
                     </label>
                     <input
                       className="aveon-input"
-                      placeholder="800000"
-                      type="text"
+                      placeholder="e.g. 800000"
+                      type="number"
                       value={salary}
                       onChange={(e) => setSalary(e.target.value)}
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-2 font-body">
-                      Joining Date
+                      Joining Date *
                     </label>
                     <input
                       className="aveon-input"
@@ -163,7 +167,7 @@ export default function OfferCenter() {
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="aveon-btn aveon-btn-primary w-full !justify-center disabled:opacity-60"
+                  className="aveon-btn aveon-btn-primary w-full !justify-center mt-2 disabled:opacity-60"
                 >
                   <span className="material-symbols-outlined text-sm">
                     {generating ? 'hourglass_empty' : 'auto_awesome'}
@@ -174,17 +178,27 @@ export default function OfferCenter() {
             </div>
           </FadeIn>
 
-          <FadeIn delay={0.2}>
-            <div className="bg-primary text-on-primary rounded-2xl p-6 flex items-start gap-4 relative overflow-hidden">
-              <div className="w-11 h-11 rounded-full border border-on-primary/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined">info</span>
+          {/* Recent offers */}
+          {recentOffers.length > 0 && (
+            <FadeIn delay={0.2}>
+              <div className="aveon-card p-6">
+                <SectionTag className="mb-4 text-[0.55rem]">Recent Offers</SectionTag>
+                <div className="space-y-3">
+                  {recentOffers.slice(0, 3).map(offer => (
+                    <div key={offer.id} className="flex items-center justify-between p-3 rounded-xl border border-outline-variant/15 bg-white/40">
+                      <div>
+                        <p className="text-sm font-medium font-body">{offer.candidateName}</p>
+                        <p className="text-xs text-on-surface-variant font-body">{offer.jobRole}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full font-body ${offer.status === 'FINALIZED' ? 'bg-secondary/10 text-secondary' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
+                        {offer.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm leading-relaxed font-body relative z-10">
-                The AI will generate a complete professional offer letter based on your inputs. You can copy or finalize it after review.
-              </p>
-              <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-secondary/20 rounded-full blur-2xl pointer-events-none" />
-            </div>
-          </FadeIn>
+            </FadeIn>
+          )}
         </div>
 
         <FadeIn delay={0.15} className="lg:col-span-7">
@@ -195,32 +209,26 @@ export default function OfferCenter() {
                 <span className="w-2.5 h-2.5 rounded-full bg-secondary/40" />
                 <span className="w-2.5 h-2.5 rounded-full bg-outline-variant/40" />
                 <span className="ml-4 text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest font-body">
-                  Preview Mode
+                  {result ? 'AI Generated Preview' : 'Preview Mode'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopy}
-                  disabled={!result}
-                  className="p-2 rounded-lg hover:bg-surface-container-low transition-colors text-secondary disabled:opacity-30"
-                  title="Copy content"
-                >
-                  <span className="material-symbols-outlined">content_copy</span>
-                </button>
-              </div>
+              {result && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-2 rounded-lg hover:bg-surface-container-low transition-colors text-secondary"
+                    title="Copy content"
+                  >
+                    <span className="material-symbols-outlined">content_copy</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="flex-grow bg-surface-container-low mx-4 md:mx-6 mb-4 mt-4 rounded-xl overflow-hidden flex flex-col">
+            <div className="flex-grow bg-surface-container-low mx-4 md:mx-6 mb-4 rounded-xl overflow-hidden flex flex-col">
               <div className="flex-grow overflow-y-auto p-8 md:p-12">
-                {!result ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">description</span>
-                    <p className="text-on-surface-variant font-body text-sm">
-                      Fill in the details and click Generate Draft to create an offer letter
-                    </p>
-                  </div>
-                ) : (
-                  <div className="max-w-2xl mx-auto bg-white p-10 md:p-14 shadow-sm border border-outline-variant/10 rounded">
+                {result ? (
+                  <div className="max-w-2xl mx-auto bg-white p-10 md:p-14 shadow-sm min-h-full border border-outline-variant/10">
                     <div className="mb-12 flex justify-between items-start">
                       <div>
                         <h4 className="font-headline text-2xl text-primary uppercase tracking-tight">
@@ -237,32 +245,35 @@ export default function OfferCenter() {
                     <div className="text-on-surface-variant text-sm leading-relaxed font-body whitespace-pre-wrap">
                       {result.generatedContent}
                     </div>
-                    {finalized && (
-                      <div className="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-2 text-secondary text-sm font-body">
-                        <span className="material-symbols-outlined text-sm">verified</span>
-                        This offer letter has been finalized
-                      </div>
-                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                    <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">description</span>
+                    <p className="text-on-surface-variant font-body">
+                      Fill in the details and click Generate Draft to preview the offer letter here.
+                    </p>
                   </div>
                 )}
               </div>
 
-              <div className="bg-surface-container px-6 md:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-outline-variant/15">
-                <span className="text-xs text-on-surface-variant font-medium font-body">
-                  {result ? (finalized ? 'Finalized ✓' : 'Ready to finalize') : 'Awaiting generation...'}
-                </span>
-                <div className="flex gap-3">
-                  {result && !finalized && (
-                    <button
-                      onClick={handleFinalize}
-                      disabled={finalizing}
-                      className="aveon-btn aveon-btn-primary !py-2 !px-5 !text-[0.65rem] disabled:opacity-60"
-                    >
-                      <span>{finalizing ? 'Finalizing...' : 'Finalize Offer'}</span>
-                    </button>
-                  )}
+              {result && (
+                <div className="bg-surface-container px-6 md:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-outline-variant/15">
+                  <span className="text-xs text-on-surface-variant font-medium font-body">
+                    {finalized ? '✅ Offer finalized' : 'Review and finalize when ready'}
+                  </span>
+                  <div className="flex gap-3">
+                    {!finalized && (
+                      <button
+                        onClick={handleFinalize}
+                        disabled={finalizing}
+                        className="aveon-btn aveon-btn-primary !py-2 !px-5 !text-[0.65rem] disabled:opacity-60"
+                      >
+                        <span>{finalizing ? 'Finalizing...' : 'Finalize Offer'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </FadeIn>
