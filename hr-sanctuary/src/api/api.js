@@ -85,5 +85,7 @@ export const generateOfferLetter = (data) =>
 export const finalizeOfferLetter = (id) =>
   api.post(`/offers/${id}/finalize`)
 export const getAllOffers = () => api.get('/offers')
+export const getStats = () => api.get('/auth/stats')
+export const getAllUsers = () => api.get('/auth/users')
 
 export default api

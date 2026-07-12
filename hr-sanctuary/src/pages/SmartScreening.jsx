@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import FadeIn from '../components/ui/FadeIn.jsx'
 import SectionTag from '../components/ui/SectionTag.jsx'
-import { getJobDescriptions, uploadResumes, getRankedCandidates, createJobDescription } from '../api/api'
+import { getJobDescriptions, uploadResumes, getRankedCandidates, createJobDescription, deleteResume } from '../api/api'
+
 
 export default function SmartScreening() {
   const [isDragOver, setIsDragOver] = useState(false)
@@ -120,6 +121,18 @@ export default function SmartScreening() {
       setError('Failed to upload resumes. Please try again.')
     } finally {
       setUploading(false)
+    }
+  }
+
+ 
+
+  const handleDelete = async (resumeId) => {
+    if (!window.confirm('Remove this candidate from the list?')) return
+    try {
+      await deleteResume(resumeId)
+      setCandidates(prev => prev.filter(c => c.resumeId !== resumeId))
+    } catch {
+      setError('Failed to remove candidate.')
     }
   }
 
@@ -383,6 +396,13 @@ export default function SmartScreening() {
                       <span className={`text-xs font-body px-3 py-1 rounded-full ${c.status === 'DONE' ? 'bg-secondary/10 text-secondary' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
                         {c.status}
                       </span>
+                      <button
+                        onClick={() => handleDelete(c.resumeId)}
+                        className="text-xs text-red-400 hover:text-red-600 transition-colors font-body flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                        Remove
+                      </button>
                     </div>
                   </div>
                 </FadeIn>
@@ -391,5 +411,6 @@ export default function SmartScreening() {
         )}
       </div>
     </div>
+    
   )
 }
