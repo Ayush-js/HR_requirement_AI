@@ -28,7 +28,7 @@ export default function Layout() {
   }, [])
 
   return (
-    <div className="bg-surface text-on-surface min-h-screen selection:bg-secondary/20 selection:text-on-surface">
+    <div className="min-h-screen">
       {/* Avéon-style fixed header */}
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-500 ${

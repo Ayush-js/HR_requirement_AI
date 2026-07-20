@@ -7,6 +7,7 @@ import PolicyQA from './pages/PolicyQA.jsx'
 import AppraisalGenerator from './pages/AppraisalGenerator.jsx'
 import OfferCenter from './pages/OfferCenter.jsx'
 import Login from './pages/Login.jsx'
+import Aurora from './components/ui/Aurora.jsx'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -39,7 +40,19 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <div className="relative min-h-screen selection:bg-secondary/20 selection:text-on-surface overflow-x-hidden">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Aurora
+            colorStops={["#7cff67","#B497CF","#5227FF"]}
+            blend={0.5}
+            amplitude={1.0}
+            speed={0.5}
+          />
+        </div>
+        <div className="relative z-10 text-on-surface">
+          <AppRoutes />
+        </div>
+      </div>
     </AuthProvider>
   )
 }

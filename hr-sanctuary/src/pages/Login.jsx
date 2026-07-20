@@ -28,7 +28,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center px-6">
+    <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <h1 className="font-headline text-4xl text-primary mb-2">HR Sanctuary</h1>
